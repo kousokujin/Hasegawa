@@ -1,0 +1,156 @@
+extends layout.pug
+block variables
+    if install_id == 'new'
+        - var title = "新規インストール作成"
+    else
+        - var title = "Edit:"+install_id
+    - var test = "test";
+block content
+    h1 Edit {{title}}
+    form(action="/install_submit",method="POST", class="col",v-if="install_id != null") 
+        nav
+            div(class="nav nav-tabs mb-3",id="nav-tab",role="tablist")
+                button(
+                    class="nav-link active",
+                    id="nav-main-tab",
+                    data-bs-toggle="tab",
+                    data-bs-target="#nav-main",
+                    type="button",
+                    role="tab",
+                    aria-controls="nav-main",
+                    aria-selected="true",
+                ) main
+                button(
+                    class="nav-link",
+                    id="nav-network-tab",
+                    data-bs-toggle="tab",
+                    data-bs-target="#nav-network",
+                    type="button",
+                    role="tab",
+                    aria-controls="nav-network",
+                    aria-selected="false",
+                ) Network
+                button(
+                    class="nav-link",
+                    id="nav-route-tab",
+                    data-bs-toggle="tab",
+                    data-bs-target="#nav-route",
+                    type="button",
+                    role="tab",
+                    aria-controls="nav-route",
+                    aria-selected="false",
+                ) Routes
+        div(class="tab-content mb-4",id="nav-tabContent")
+            div(class="tab-pane fade show active",id="nav-main",role="tabpanel",aria-labelledby="nav-main-tab")
+                h3(class="mb-3") General Settings
+                div(class="input-group has-validation mb-3")
+                    span(class="input-group-text",id="install_id_label") Install ID</label>
+                    input(type="text",v-bind:class="validateclass_install_id",id="install_id", name="install_id",aria-describedby="install_id_label",v-model="install_id.content",v-on:change="vfunc_install_id")
+                    div(id="install_id_validate",v-show="install_id.validate != ''",class="invalid-feedback") {{install_id.validate}}
+                div(class="input-group has-validation mb-3")
+                    span(class="input-group-text",id="hostname_label") hostname
+                    input(type="text",v-bind:class="validateclass_hostname",id="hostname", name="hostname", aria-describedby="hostname_label",v-model="hostname.content",v-on:change="vfunc_hostname")
+                    div(v-show="hostname.validate != ''",class="invalid-feedback") {{hostname.validate}}
+                div(class="form-check mb-3")
+                    input(class="form-check-input",type="checkbox",id="enable_ssh_chk",v-model="enable_ssh")
+                    label(class="form-check-label",for="enable_ssh_chk") Enable SSH
+                h3(class="mb-3") User Account Config            
+                div(class="input-group has-validation mb-3")
+                    span(class="input-group-text",id="username_label") username
+                    input(type="text",v-bind:class="validateclass_username",id="username",name="username" ,aria-describedby="username_label",v-model="username.content",v-on:change="vfunc_username")
+                    div(v-show="username.validate != ''",class="invalid-feedback") {{username.validate}}
+                div(class="input-group has-validation mb-3")
+                    span(class="input-group-text",id="password_label") password
+                    input(type="password",v-bind:class="validateclass_password",id="password", name="password", aria-describedby="password_label",v-model="password.content",v-on:change="vfunc_password")
+                    div(v-show="password.validate != ''",class="invalid-feedback") {{password.validate}}
+                div(class="input-group has-validation mb-3")
+                    span(class="input-group-text",id="retype_label") retype
+                    input(type="password",v-bind:class="validateclass_password_retype",id="retype", name="retype", aria-describedby="retype_label",v-model="password_retype.content",v-on:change="vfunc_retype")
+                    div(v-show="password_retype.validate != ''",class="invalid-feedback") {{password_retype.validate}}
+                h3(class="mb-3") Install Packeges
+                div(class="input-group has-validation mb-2",v-for="p in install_packages",v-bind:data-value="p.id")
+                    input(type="text",v-bind:class="validateclass_package(p.id)", name="packages", v-model="p.package_name",v-on:change="vfunc_package(p.id)")
+                    button(class="btn btn-danger ip-delete",type="button",v-on:click="col_del_btn('package',p.id)") 削除
+                    div(v-show="p.validate != ''" class="invalid-feedback") {{p.validate}}
+                div(class="d-grid gap-2 d-md-flex justify-content-md-end")
+                    button(class="btn btn-success btn-sm", type="button", v-on:click="add_package") 追加
+
+            div(class="tab-pane fade",id="nav-network",role="tabpanel",aria-labelledby="nav-network-tab")
+                h3(class="mb-3") Network Config
+                table(class="table table-striped mb-3")
+                    thead
+                        tr
+                            th(class="col-8") IP Address
+                            th(class="col-2") mask
+                            th(class="col-2")
+                    tbody
+                        tr(v-for="addr in ip_addresses",v-bind:data-value="addr.id")
+                            td
+                                input(type="text",v-bind:class="validateclass_ipaddr(addr.id)", name="ip", v-model="addr.address", v-on:change="v_func_ipaddr(addr.id)",:title="addr.validate.address")
+                            td
+                                input(type="text",v-bind:class="validateclass_ipmask(addr.id)", name="ip_mask", v-model="addr.mask",v-on:change="v_func_ipmask(addr.id)",:title="addr.validate.mask")
+                            td
+                                button(class="btn btn-danger btn-sm",type="button",v-bind:data-value="addr.id",v-on:click="col_del_btn('ip_address',addr.id)") 削除
+                        tr
+                            td 
+                            td 
+                            td
+                                button(class="btn btn-success btn-sm", type="button", v-on:click="add_addr") 追加
+                div(class="mb-3")
+                    label(for="default_gw",class="form-label") Default Gateway
+                    input(type="text",v-bind:class="validateclass_defaultgw",id="default_gw", name="default_gw",v-model="default_gateway.content",v-on:change="vfunc_defaultgw")
+                    div(v-show="default_gateway.validate != ''",class="invalid-feedback") {{default_gateway.validate}}
+                div(class="mb-3")
+                    label(class="form-label") NameServer
+                    div(class="input-group has-validation mb-2", v-for="addr in name_servers",v-bind:data-value="addr.id")
+                        input(type="text",v-bind:class="validateclass_nameserver(addr.id)", name="ns", v-model="addr.address",v-on:change="vfunc_nameserver(addr.id)")
+                        button(class="btn btn-danger",type="button",v-bind:data-value="addr.id",v-on:click="col_del_btn('name_server',addr.id)") 削除
+                        div(v-show="addr.validate != ''",class="invalid-feedback") {{addr.validate}}
+                    div(class="d-grid gap-2 d-md-flex justify-content-md-end")
+                        button(class="btn btn-success btn-sm", type="button",v-on:click="col_add_btn('name_server')") 追加
+                div(class="mb-3")
+                    label(class="form-label") SearchDomain
+                    div(class="input-group has-validation mb-2" v-for="addr in search_domains",v-bind:data-value="addr.id")
+                        input(type="text",v-bind:class="validateclass_searchdomain(addr.id)", name="sd", v-model="addr.address",v-on:change="vfunc_searchdomain(addr.id)")
+                        button(class="btn btn-danger",type="button",v-bind:data-value="addr.id", v-on:click="col_del_btn('search_domain',addr.id)") 削除
+                        div(v-show="addr.validate != ''",class="invalid-feedback") {{addr.validate}}
+                    div(class="d-grid gap-2 d-md-flex justify-content-md-end")
+                        button(class="btn btn-success btn-sm", type="button",v-on:click="col_add_btn('search_domain')") 追加
+
+            div(class="tab-pane fade",id="nav-route",role="tabpanel",aria-labelledby="nav-route-tab")
+                table(class="table table-striped")
+                    thead
+                        tr
+                            th(class="col-4") 宛先
+                            th(class="col-1") マスク
+                            th(class="col-4") ゲートウェイ
+                            th(class="col-1") メトリック
+                            th(class="col-3") 削除
+                        tr
+                    tbody 
+                        tr(v-for="r in routes", v-bind:data-value="r.id")
+                            td
+                                input(v-bind:class="validateclass_route_network(r.id)", type="text", v-model="r.network", v-on:change="vfunc_route_network(r.id)",:title="r.validate.network")
+                            td
+                                input(v-bind:class="validateclass_route_mask(r.id)",type="text", v-model="r.mask", v-on:change="vfunc_route_mask(r.id)",:title="r.validate.mask")
+                            td
+                                input(v-bind:class="validateclass_route_gateway(r.id)",type="text", v-model="r.gateway", v-on:change="vfunc_route_gateway(r.id)",:title="r.validate.gateway")
+                            td
+                                input(v-bind:class="validateclass_route_metric(r.id)",type="text", v-model="r.metric", v-on:change="vfunc_route_metric(r.id)",:title="r.validate.metric")
+                            td
+                                button(class="btn btn-danger btn-sm",type="button",v-bind:data-value="r.id",v-on:click="col_del_btn('route',r.id)") 削除
+                        tr
+                            td
+                            td 
+                            td
+                            td
+                            td
+                                button(class="btn btn-success btn-sm",type="button",v-on:click="add_route") 追加
+        input(type="hidden",name="_csrf",value=csrf)
+        div(class="d-grid gap-2 d-md-flex justify-content-md-end")
+            button(type="button",class="btn btn-lg btn-primary mb-4",v-on:click="submit",:disabled='submit_disable') 登録
+block vue_script
+    script var install_id = "#{install_id}";
+    script(src='/javascripts/ModelGetter.js')
+    script(src='/javascripts/validation.js')
+    script(src='/javascripts/InstallPlanEditModel.js')

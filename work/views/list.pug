@@ -1,0 +1,25 @@
+extends layout.pug
+block variables
+    - var title = "インストールプラン一覧"
+block content
+        h1(class="mb-3") 自動インストール一覧
+        div(class="mb-3")
+            div(class="input-group mb-2")
+                input(type="text",class="form-control form-control", name="ns",v-model="search_word")
+                button(class="btn btn-primary",type="button",v-on:click="search_btn") 検索 
+        div(v-if="Installations && Installations.length > 0")
+            div(class="card mb-3",v-if="Installations && Installations.length > 0",v-for="item in Installations")
+                div(class="card-body")
+                    h4(class="card-title")
+                        a(:href="/Installation/+item.id")  {{item.install_id}}
+                    h6(v-if="item.ssh") 
+                        span(class="badge bg-primary") SSH
+                    h6(class="card-subtitle") Hostname: {{item.hostname}}
+                    p(class="card-text")
+                        small(class="text-muted") 更新日:{{item.updatedAt}} ID:{{item.id}}
+        div(v-else)
+            p 自動インストールプランがありません。
+block vue_script
+    script var word = "#{word}";
+    script(src='/javascripts/ModelGetter.js')
+    script(src='/javascripts/ListModel.js')

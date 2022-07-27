@@ -1,0 +1,24 @@
+{
+  "name": "cloud-init-app",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "nodemon ./bin/www"
+  },
+  "dependencies": {
+    "cookie-parser": "~1.4.4",
+    "csurf": "^1.11.0",
+    "debug": "~4.3.4",
+    "express": "~4.18.1",
+    "express-session": "^1.17.3",
+    "http-errors": "~2.0.0",
+    "morgan": "~1.10.0",
+    "mysql2": "^2.3.3",
+    "nodemon": "^2.0.18",
+    "pug": "^3.0.2",
+    "sequelize": "^6.21.3",
+    "sequelize-cli": "^6.4.1",
+    "unixcrypt": "^1.1.0",
+    "yaml": "^2.1.1"
+  }
+}

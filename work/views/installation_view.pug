@@ -1,0 +1,85 @@
+extends layout.pug
+block content
+    div(v-if="install_id")
+        h1(class="mb-3") AutoInstallaion: {{install_id}}
+        div(class="d-grid gap-2 d-md-flex justify-content-md-start mb-3")
+            a(class="btn btn-sm btn-secondary",:href="'/api/auto-install/'+install_id+'/user-data'") user-data
+            a(class="btn btn-sm btn-secondary",:href="'/api/auto-install/'+install_id+'/network'") network
+        h2(class="mb-3") General
+        table(class="table")
+            tr
+                th Install ID
+                td {{install_id}}
+            tr 
+                th Hostname
+                td {{hostname}}
+            tr
+                th Username
+                td {{username}}
+            tr
+                th Password
+                td ************
+            tr
+                th Enable SSH 
+                td {{enable_ssh}}
+            tr
+                th 作成日
+                td {{createdAt}}
+            tr
+                th 更新日
+                td {{updatedAt}}
+        h2(class="mb-3") IP Addresses
+        ul(class="list-group mb-3",v-if="ip_addresses.length > 0")
+            li(class="list-group-item",v-for="addr in ip_addresses") {{addr.address}}/{{addr.mask}}
+        p(v-else) IP Addressesはありません。
+        h2(class="mb-3") SearchDomain
+        ul(class="list-group mb-3",v-if="search_domains.length > 0")
+            li(class="list-group-item",v-for="addr in search_domains") {{addr.address}}
+        p(v-else) SeachDomainはありません。
+        h2(class="mb-3") NameServer
+        ul(class="list-group mb-3",v-if="name_servers.length > 0")
+            li(class="list-group-item",v-for="addr in name_servers") {{addr.address}}
+        p(v-else) NameServerはありません。
+        h2(class="mb-3") ルーティングテーブル
+        table(class="table table-striped mb-3",v-if="routes.length > 0")
+            thead
+                tr
+                    th(class="col-4") 宛先
+                    th(class="col-1") マスク
+                    th(class="col-4") ゲートウェイ
+                    th(class="col-1") メトリック
+            tbody
+                tr(v-for="item in routes")
+                    td {{item.network}}
+                    td {{item.mask}}
+                    td {{item.gateway}}
+                    td {{item.metric}}
+        p(v-else) ルーティングテーブルはありません。
+        h2(class="mb-3") Install Packages
+        ul(class="list-group mb-3",v-if="install_packages.length > 0")
+            li(class="list-group-item",v-for="item in install_packages") {{item.package_name}}
+        p(v-else) Install Packageはありません。
+        div(class="d-grid gap-2 d-md-flex justify-content-md-end mb-3")
+            a(class="btn btn-lg btn-primary",:href="/edit/+id") 編集
+            button(class="btn btn-lg btn-danger",data-bs-toggle="collapse",data-bs-target="#Delete_Window",aria-expanded="false",aria-controls="Delete_Window") 削除
+        div(class="collapse",id="Delete_Window")
+            div(class="card card-body") 
+                p(class="mb-2") 削除を行うには下のボタンを押してください。
+                div(class="d-grid gap-2 d-md-flex justify-content-md-start mb-3")
+                    button(class="btn btn-lg btn-danger",data-bs-toggle="modal",data-bs-target="#DeleteModal") 自動インストールの削除
+
+
+        div(class="modal fade",id="DeleteModal",tabindex="-1",aria-labelledby="DeleteModallLabel",aria-hidden="true")
+            div(class="modal-dialog")
+                div(class="modal-content")
+                    div(class="modal-header")
+                        h5(class="modal-title",id="DeleteModalLabel") 自動インストールの削除
+                        button(type="button",class="btn-close",data-bs-dismiss="modal",aria-label="Close")
+                    div(class="modal-body") 自動インストール「{{install_id}}」を削除しますか？
+                    div(class="modal-footer")
+                        button(type="button",class="btn btn-secondary",data-bs-dismiss="modal") キャンセル
+                        button(type="button",class="btn btn-danger",v-on:click="delete_btn") 削除
+block vue_script
+    script var id = "#{id}"
+    script(src='/javascripts/ModelGetter.js')
+    script(src='/javascripts/InstallationViewModel.js')
