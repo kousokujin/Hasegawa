@@ -6,7 +6,7 @@ function Run(model){
         methods: {
             delete_btn: function(){
                 const data = {
-                    install_id: this.$data.install_id,
+                    id: this.$data.id,
                     _csrf: this.$data._csrf,
                 }
                 POSTData('/api/delete',data);

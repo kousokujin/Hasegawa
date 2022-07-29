@@ -29,6 +29,18 @@ const Editor_Model_New = {
         validate: "",
     },
     enable_ssh: false,
+    discription: {
+        content:"",
+        validate: "",
+    },
+    timezone:{
+        content: "",
+        validate: "",
+    },
+    locale:{
+        content: "",
+        validate: ""
+    },
     install_packages:[
         {
             id: 0,
@@ -36,7 +48,13 @@ const Editor_Model_New = {
             validate: "",
         }
     ],
-
+    late_commands:[
+        {
+            id: 0,
+            command: "",
+            validate: "",
+        }
+    ],
     //---- Network ----
     default_gateway: {
         content: "",
@@ -127,8 +145,8 @@ router.get("/edit_model/:id",function(req,res,next){
     }
     else{
         GetInstallations(id,{
-            exist: function(data){
-                const fix_keys = ['install_id','hostname','username'];
+            exist: (data) => {
+                const fix_keys = ['install_id','hostname','username','discription','timezone','locale'];
                 fix_keys.forEach((value,index,array)=>{
                     data[value] = {
                         content: data[value],
@@ -143,7 +161,7 @@ router.get("/edit_model/:id",function(req,res,next){
                 data["password_retype"] = {
                     content: "",
                     validate: ""
-                }
+                };
 
                 let default_gw_arr = data.routes.filter(x=> x.network == 'default');
                 if(default_gw_arr.length > 0){
@@ -223,7 +241,21 @@ router.get("/edit_model/:id",function(req,res,next){
                 else{
                     data.install_packages.forEach((value,index,array)=>{
                         value['validate'] = "";
-                    })
+                    });
+                }
+
+                
+                if(data.late_commands.length == 0){
+                    data.late_commands.push({
+                        id: 0,
+                        command: "",
+                        validate : "",
+                    });
+                }
+                else{
+                    data.late_commands.forEach((value,index,array)=>{
+                        value['validate'] = '';
+                    });
                 }
                 data['_csrf'] = csrf;
                 res.json(data);
@@ -294,9 +326,9 @@ router.post("/apply/:id",async function(req,res,next){
 });
 
 router.post("/delete",function(req,res,next){
-    const install_id = req.body.install_id;
+    const id = req.body.id;
 
-    db.installations.findOne({where: {install_id: install_id}}).then((result)=>{
+    db.installations.findOne({where: {id: id}}).then((result) => {
         if(result == null){
             const response = {
                 "status": "err",
@@ -305,17 +337,15 @@ router.post("/delete",function(req,res,next){
             res.status(404).json(response);
         }
 
-        const db_name = ['ipaddrs','NameServers','SearchDomains','routings','InstallPackeages'];
-        const id = result.dataValues.id;
+        const db_name = ['ipaddrs','NameServers','SearchDomains','routings','InstallPackeages','late_commands'];
+        let que = []
         db_name.forEach((value,index,array)=>{
-            db[value].destroy({
-                where: {
-                    installation_id: id
-                }
-            });
+            que.push(db[value].destroy({where: {installation_id: id}}));
         });
 
-        result.destroy();
+        Promise.all(que).then(x=>{
+            result.destroy();
+        });
     });
     
 });
@@ -335,9 +365,12 @@ function NewInstallation_Regist(model,after_func){
 
     db.installations.create({
         install_id: model.install_id.content,
+        discription: model.discription.content,
+        timezone: model.timezone.content,
+        locale: model.locale.content,
         hostname: model.hostname.content,
         username: model.username.content,
-        password: password_hash.content,
+        password: password_hash,
         ssh: model.enable_ssh,
       }).then((result) => {         
         const ModelOutput = ModelToDB(result['id'],model);
@@ -369,6 +402,9 @@ function ModifyInstallation(model,after_func){
         }
 
         result.install_id = model.install_id.content;
+        result.discription  = model.discription.content;
+        result.timezone = model.timezone.content;
+        result.locale = model.locale.content;
         result.hostname = model.hostname.content;
         result.username = model.username.content;
         result.ssh = model.enable_ssh;
@@ -407,8 +443,8 @@ function ModifyInstallation(model,after_func){
 }
 
 function ModelToDB(id,model){
-    const item_list = ['ipaddr','nameservers','searchdomain','routing_table','install_packages'];
-    const db_names = ['ipaddrs','NameServers','SearchDomains','routings','InstallPackeages'];
+    const item_list = ['ipaddr','nameservers','searchdomain','routing_table','install_packages','late_commands'];
+    const db_names = ['ipaddrs','NameServers','SearchDomains','routings','InstallPackeages','late_commands'];
 
     let new_data = {};
 
@@ -485,6 +521,17 @@ function ModelToDB(id,model){
         }
     });
 
+    //late_commands
+    model.late_commands.forEach((value,index,arr)=>{
+        if(value['command'] != ''){
+            let item = {
+                installation_id: id,
+                command: value['command']
+            };
+            new_data.late_commands.push(item);            
+        }
+    });
+
     return [new_data,db_names];
 }
 
@@ -501,16 +548,20 @@ function GetInstallations(request_id,after_func){
             db.SearchDomains.findAll({where: {installation_id: id}}),
             db.NameServers.findAll({where: {installation_id: id}}),
             db.InstallPackeages.findAll({where: {installation_id: id}}),
+            db.late_commands.findAll({where: {installation_id: id}}),
         ]).then((result) => {
-            const attributes = ['ip_addresses','routes','search_domains','name_servers','install_packages']
+            const attributes = ['ip_addresses','routes','search_domains','name_servers','install_packages','late_commands']
             const install = installation_result.dataValues;
             let output_data = {
                 id: install.id,
                 install_id: install.install_id,
+                discription: install.discription,
                 hostname: install.hostname,
                 username: install.username,
                 password: install.password,
                 enable_ssh: install.ssh,
+                timezone: install.timezone,
+                locale: install.locale,
                 createdAt: install.createdAt,
                 updatedAt: install.updatedAt,
             };

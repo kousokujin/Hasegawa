@@ -2,9 +2,6 @@ extends layout.pug
 block variables
     if install_id == 'new'
         - var title = "新規インストール作成"
-    else
-        - var title = "Edit:"+install_id
-    - var test = "test";
 block content
     h1 Edit {{title}}
     form(action="/install_submit",method="POST", class="col",v-if="install_id != null") 
@@ -44,36 +41,55 @@ block content
             div(class="tab-pane fade show active",id="nav-main",role="tabpanel",aria-labelledby="nav-main-tab")
                 h3(class="mb-3") General Settings
                 div(class="input-group has-validation mb-3")
-                    span(class="input-group-text",id="install_id_label") Install ID</label>
+                    span(class="input-group-text",id="install_id_label") *Install ID</label>
                     input(type="text",v-bind:class="validateclass_install_id",id="install_id", name="install_id",aria-describedby="install_id_label",v-model="install_id.content",v-on:change="vfunc_install_id")
                     div(id="install_id_validate",v-show="install_id.validate != ''",class="invalid-feedback") {{install_id.validate}}
+                div(class="input-group mb-3")
+                    span(class="input-group-text",id="discription_label") discription</label>
+                    input(type="text",class="form-control",id="discription", name="discription",aria-describedby="discription_label",v-model="discription.content")
                 div(class="input-group has-validation mb-3")
-                    span(class="input-group-text",id="hostname_label") hostname
+                    span(class="input-group-text",id="hostname_label") *hostname
                     input(type="text",v-bind:class="validateclass_hostname",id="hostname", name="hostname", aria-describedby="hostname_label",v-model="hostname.content",v-on:change="vfunc_hostname")
                     div(v-show="hostname.validate != ''",class="invalid-feedback") {{hostname.validate}}
+                div(class="input-group has-validation mb-3")
+                    span(class="input-group-text",id="timezone_label") TimeZone
+                    input(type="text",v-bind:class="validateclass_timezone",id="timezone", name="timezone", aria-describedby="timezone_label",v-model="timezone.content",v-on:change="vfunc_timezone")
+                    div(v-show="timezone.validate != ''",class="invalid-feedback") {{timezone.validate}}
+                div(class="input-group has-validation mb-3")
+                    span(class="input-group-text",id="timezone_label") locale
+                    input(type="text",v-bind:class="validateclass_locale",id="locale", name="locale", aria-describedby="locale_label",v-model="locale.content",v-on:change="vfunc_locale")
+                    div(v-show="locale.validate != ''",class="invalid-feedback") {{locale.validate}}
                 div(class="form-check mb-3")
                     input(class="form-check-input",type="checkbox",id="enable_ssh_chk",v-model="enable_ssh")
                     label(class="form-check-label",for="enable_ssh_chk") Enable SSH
                 h3(class="mb-3") User Account Config            
                 div(class="input-group has-validation mb-3")
-                    span(class="input-group-text",id="username_label") username
+                    span(class="input-group-text",id="username_label") *username
                     input(type="text",v-bind:class="validateclass_username",id="username",name="username" ,aria-describedby="username_label",v-model="username.content",v-on:change="vfunc_username")
                     div(v-show="username.validate != ''",class="invalid-feedback") {{username.validate}}
                 div(class="input-group has-validation mb-3")
-                    span(class="input-group-text",id="password_label") password
+                    span(class="input-group-text",id="password_label") *password
                     input(type="password",v-bind:class="validateclass_password",id="password", name="password", aria-describedby="password_label",v-model="password.content",v-on:change="vfunc_password")
                     div(v-show="password.validate != ''",class="invalid-feedback") {{password.validate}}
                 div(class="input-group has-validation mb-3")
-                    span(class="input-group-text",id="retype_label") retype
+                    span(class="input-group-text",id="retype_label") *retype
                     input(type="password",v-bind:class="validateclass_password_retype",id="retype", name="retype", aria-describedby="retype_label",v-model="password_retype.content",v-on:change="vfunc_retype")
                     div(v-show="password_retype.validate != ''",class="invalid-feedback") {{password_retype.validate}}
                 h3(class="mb-3") Install Packeges
                 div(class="input-group has-validation mb-2",v-for="p in install_packages",v-bind:data-value="p.id")
                     input(type="text",v-bind:class="validateclass_package(p.id)", name="packages", v-model="p.package_name",v-on:change="vfunc_package(p.id)")
-                    button(class="btn btn-danger ip-delete",type="button",v-on:click="col_del_btn('package',p.id)") 削除
+                    button(class="btn btn-danger",type="button",v-on:click="col_del_btn('package',p.id)") 削除
                     div(v-show="p.validate != ''" class="invalid-feedback") {{p.validate}}
                 div(class="d-grid gap-2 d-md-flex justify-content-md-end")
                     button(class="btn btn-success btn-sm", type="button", v-on:click="add_package") 追加
+                h3(class="mb-3") Late Commands
+                div(class="input-group has-validation mb-2",v-for="p in late_commands",v-bind:data-value="p.id")
+                    input(type="text",v-bind:class="validateclass_late_command(p.id)", name="late_commands", v-model="p.command",v-on:change="vfunc_late_commands(p.id)")
+                    button(class="btn btn-danger",type="button",v-on:click="col_del_btn('late_commands',p.id)") 削除
+                    div(v-show="p.validate != ''" class="invalid-feedback") {{p.validate}}
+                div(class="d-grid gap-2 d-md-flex justify-content-md-end")
+                    button(class="btn btn-success btn-sm", type="button", v-on:click="add_command") 追加
+
 
             div(class="tab-pane fade",id="nav-network",role="tabpanel",aria-labelledby="nav-network-tab")
                 h3(class="mb-3") Network Config

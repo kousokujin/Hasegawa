@@ -2,6 +2,7 @@ extends layout.pug
 block content
     div(v-if="install_id")
         h1(class="mb-3") AutoInstallaion: {{install_id}}
+        p {{discription}}
         div(class="d-grid gap-2 d-md-flex justify-content-md-start mb-3")
             a(class="btn btn-sm btn-secondary",:href="'/api/auto-install/'+install_id+'/user-data'") user-data
             a(class="btn btn-sm btn-secondary",:href="'/api/auto-install/'+install_id+'/network'") network
@@ -22,12 +23,19 @@ block content
             tr
                 th Enable SSH 
                 td {{enable_ssh}}
+            tr(v-if="timezone")
+                th timezone
+                td {{timezone}}
+            tr(v-if="locale")
+                th locale
+                td {{locale}}
             tr
                 th 作成日
                 td {{createdAt}}
             tr
                 th 更新日
                 td {{updatedAt}}
+
         h2(class="mb-3") IP Addresses
         ul(class="list-group mb-3",v-if="ip_addresses.length > 0")
             li(class="list-group-item",v-for="addr in ip_addresses") {{addr.address}}/{{addr.mask}}
@@ -59,6 +67,12 @@ block content
         ul(class="list-group mb-3",v-if="install_packages.length > 0")
             li(class="list-group-item",v-for="item in install_packages") {{item.package_name}}
         p(v-else) Install Packageはありません。
+
+        h2(class="mb-3") late-commands
+        ul(class="list-group mb-3",v-if="late_commands.length > 0")
+            li(class="list-group-item",v-for="item in late_commands") {{item.command}}
+        p(v-else) late-commandsはありません。
+
         div(class="d-grid gap-2 d-md-flex justify-content-md-end mb-3")
             a(class="btn btn-lg btn-primary",:href="/edit/+id") 編集
             button(class="btn btn-lg btn-danger",data-bs-toggle="collapse",data-bs-target="#Delete_Window",aria-expanded="false",aria-controls="Delete_Window") 削除

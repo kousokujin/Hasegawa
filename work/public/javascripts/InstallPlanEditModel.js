@@ -10,6 +10,8 @@ function get_target(data,item){
             return data.routes;
         case "package":
             return data.install_packages;
+        case "late_commands":
+            return data.late_commands;
         default:
             return nuil;
     }
@@ -149,6 +151,20 @@ function run(model){
                 });
             },
 
+            add_command: function(){
+                let number_index = data_to_array(this.late_commands,"id");
+                let next_value = 0;
+                if(number_index.length > 0){
+                    next_value = Math.max.apply(null,number_index) + 1;
+                }
+
+                this.late_commands.push({
+                    id: next_value,
+                    command: "",
+                    validate: ""
+                });
+            },
+
             submit: function(){
                 axios.post("/api/apply/"+install_id,this.$data).then(function(res){
                     if(res.data.status == "OK"){
@@ -200,6 +216,16 @@ function run(model){
                 ]);
                 this.submit_disable = !Enable_Submit_button(this);
             },
+            vfunc_timezone: function(){
+                this.timezone.validate = validation(this.timezone.content,[
+                    ascii
+                ]);
+            },
+            vfunc_locale: function(){
+                this.locale.validate = validation(this.locale.content,[
+                    ascii
+                ]);
+            },
 
             vfunc_password: function(){
                 this.password.validate = validation(this.password.content,[
@@ -236,6 +262,13 @@ function run(model){
             vfunc_package: function(id){
                 let target = data_seach(this.install_packages,"id",id);
                 this.install_packages[target].validate = validation(this.install_packages[target].package_name,[
+                    ascii
+                ]);
+            },
+
+            vfunc_late_commands: function(id){
+                let target = data_seach(this.late_commands,"id",id);
+                this.late_commands[target].validate = validation(this.late_commands[target].command,[
                     ascii
                 ]);
             },
@@ -319,6 +352,12 @@ function run(model){
             validateclass_username: function(){
                 return this.username.validate == '' ? "form-control" : "form-control is-invalid"
             },
+            validateclass_timezone: function(){
+                return this.timezone.validate == '' ? "form-control" : "form-control is-invalid"
+            },
+            validateclass_locale: function(){
+                return this.locale.validate == '' ? "form-control" : "form-control is-invalid"
+            },
             validateclass_password: function(){
                 return this.password.validate == '' ? "form-control" : "form-control is-invalid"
             },
@@ -329,6 +368,12 @@ function run(model){
                 return (id)=>{
                     let target = data_seach(this.install_packages,"id",id);
                     return this.install_packages[target].validate == '' ? "form-control form-control-sm" : "form-control form-control-sm is-invalid"
+                }
+            },
+            validateclass_late_command: function(){ 
+                return (id)=>{
+                    let target = data_seach(this.late_commands,"id",id);
+                    return this.late_commands[target].validate == '' ? "form-control form-control-sm" : "form-control form-control-sm is-invalid"
                 }
             },
 

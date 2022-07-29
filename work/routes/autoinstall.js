@@ -40,20 +40,20 @@ router.get("/:install_id/network",async function(req,res,next){
 
 async function User_data_json(install_id,req){
     const result = await db.installations.findOne({where: {install_id: install_id}});
-    //console.log(result);
     if(result == null){
         return null;
     }
 
     const id = result.dataValues.id;
-    const install_package_db = await db.InstallPackeages.findAll({where: {installation_id: id}});
+    const task = await Promise.all([
+        db.InstallPackeages.findAll({where: {installation_id: id}}),
+        db.late_commands.findAll({where: {installation_id: id}}),
+    ]);
+    
     let install_package = [];
-    install_package_db.forEach((value,index,array)=>{
+    task[0].forEach((value,index,array)=>{
         install_package.push(value.dataValues.package_name);
-    })
-
-    const ssh = result.dataValues.ssh == true ? "yes" : "no";
-
+    });
 
     //network wget
     const fullUrl = url.format({
@@ -61,11 +61,20 @@ async function User_data_json(install_id,req){
         host: req.get('Host'),
         pathname: "/api/auto-install/"+install_id+"/network",
     });
-    let commands = [
-        String("\"wget -O /target/etc/netplan/90-network.yaml " + fullUrl + "\"")
-    ];
 
-    const user_data_dict = {
+    let commands = [];
+    
+    if(await isNetworkConfig(id) == true){
+        commands.push("wget -O /target/etc/netplan/90-network.yaml " + fullUrl);
+    }
+
+    task[1].forEach((value,index,array)=>{
+        commands.push(value.dataValues.command);
+    });
+
+    const ssh = result.dataValues.ssh == true ? "yes" : "no";
+
+    let user_data_dict = {
         "autoinstall": {
             "version": 1,
             "identity": {
@@ -75,14 +84,31 @@ async function User_data_json(install_id,req){
             },
             "ssh":{
                 "install-server": ssh
-            },
-            "packages": install_package,
-            "user-data":{
-                "timezone": "\"Asia/Tokyo\"",
-            },
-            "late-commands":  commands
+            }
         }
     }
+
+    if(install_package.length > 0){
+        user_data_dict.autoinstall['packages'] = install_package;
+    }
+
+    if(commands.length > 0){
+        user_data_dict.autoinstall['late-commands'] = [];
+        commands.forEach(x=>{
+            user_data_dict.autoinstall['late-commands'].push("\"" + x + "\"");
+        });
+    }
+
+    if(result.dataValues.timezone != null && result.dataValues.timezone != ''){
+        user_data_dict.autoinstall['user-data'] = {
+            "timezone": "\"" + result.dataValues.timezone + "\"",
+        }
+    }
+
+    if(result.dataValues.locale != null && result.dataValues.locale != ''){
+        user_data_dict['locale'] = "\"" + result.dataValues.locale + "\"";
+    }
+
     return user_data_dict;
 }
 
@@ -92,116 +118,104 @@ async function network_config_json(install_id){
         return null;
     }
     const id = result.dataValues.id;
-
-    const task = await Promise.all([
-        db.ipaddrs.findAll({where: {installation_id: id}}),
-        db.routings.findAll({where: {installation_id: id}}),
-        db.SearchDomains.findAll({where: {installation_id: id}}),
-        db.NameServers.findAll({where: {installation_id: id}}),
-    ]);
-
-    let addresses = [];
-    task[0].forEach((value,index,array)=>{
-        const ip = value.dataValues.address;
-        const mask = value.dataValues.mask;
-        addresses.push(ip+"/"+mask);
-    })
-
-    let nameservers = []
-    task[3].forEach((value,index,array)=>{
-        const ip = value.dataValues.address;
-        nameservers.push(ip);
-    });
-
-    let searchdomains = []
-    task[2].forEach((value,index,array)=>{
-        const ip = value.dataValues.address;
-        searchdomains.push(ip);
-    });
-
-    let routes = []
-    task[1].forEach((value,index,array)=>{
-        const network = value.dataValues.network;
-        const mask = value.dataValues.mask;
-        const gw = value.dataValues.gateway;
-        const metric = value.dataValues.metric;
-
-        let network_str = "";
-        if(mask == null){
-            network_str = network;
-        }
-        else{
-            network_str = (network + "/" + mask)
-        }
-
-        let data = {
-            "to": network_str,
-            "via": gw
-        }
-        if(metric != null && metric != ""){
-            data["metric"] = metric;
-        }
-
-        routes.push(data);
-    })
-
-    const network_dict = {
+    
+    const network = await GetNetworks(id);
+    
+    let network_dict = {
         "network": {
             "ethernets": {
-                "eth0": {
-                    "addresses":addresses,
-                    "nameservers":{
-                        "addresses": nameservers,
-                        "search": searchdomains
-                    },
-                    "routes": routes
-                }
-            }
+                "eth0": {}
+            },
+            "version": 2
         }
     }
 
-    return network_dict;
+    if(network.SearchDomains.length > 0 || network.NameServers.length > 0){
+        network_dict.network.ethernets.eth0['nameservers'] = {}
+        if(network.NameServers.length > 0){
+            network_dict.network.ethernets.eth0.nameservers["addresses"] = network.NameServers;
+        }
+        if(network.SearchDomains.length > 0){
+            network_dict.network.ethernets.eth0.nameservers['search'] = network.SearchDomains;
+        }
+    }
 
+    if(network.ipaddrs.length > 0){
+        network_dict.network.ethernets.eth0["addresses"] = network.ipaddrs;
+    }
+
+    if(network.routings.length > 0){
+        network_dict.network.ethernets.eth0["routes"] = network.routings;
+    }
+
+    return network_dict;
 }
 
-    
-    /*
-    then(function(installation_result){
-        if(installation_result == null){
-            after_func.nodata();
-            return;
-        }
-        const id = installation_result.dataValues.id;
-        const task = Promise.all([
-            db.ipaddrs.findAll({where: {installation_id: id}}),
-            db.routings.findAll({where: {installation_id: id}}),
-            db.SearchDomains.findAll({where: {installation_id: id}}),
-            db.NameServers.findAll({where: {installation_id: id}}),
-            db.InstallPackeages.findAll({where: {installation_id: id}}),
-        ]).then((result) => {
-            const attributes = ['ip_addresses','routes','search_domains','name_servers','install_packages']
-            const install = installation_result.dataValues;
-            let output_data = {
-                id: install.id,
-                install_id: install.install_id,
-                hostname: install.hostname,
-                username: install.username,
-                password: install.password,
-                enable_ssh: install.ssh,
-                createdAt: install.createdAt,
-                updatedAt: install.updatedAt,
-            };
+async function GetNetworks(id){
+    const item_list = ['ipaddrs','routings','SearchDomains','NameServers'];
 
-            result.forEach((value,index,array) => {
-                output_data[attributes[index]] = [];
-                value.forEach((value2,index2,array2) => {
-                    output_data[attributes[index]].push(value2.dataValues);
-                });
-            });
-            after_func.exist(output_data);
-            Promise.resolve(output_data);
-        })
-        Promise.resolve(task);        
+    let que = [];
+    item_list.forEach(x=>{
+        que.push(db[x].findAll({where: {installation_id: id}}));
     });
-    */
+
+    const task = await Promise.all(que);
+    let output = {};
+
+    item_list.forEach((value,index,array)=>{
+        output[value] = [];
+        if(value == 'ipaddrs'){
+            task[index].forEach(x=>{
+                const ip = x.dataValues.address;
+                const mask = x.dataValues.mask;
+                output[value].push(ip+"/"+mask);
+            });
+        }
+        if(value == "routings"){
+            task[index].forEach(x=>{
+                const network = x.dataValues.network;
+                const mask = x.dataValues.mask;
+                const gw = x.dataValues.gateway;
+                const metric = x.dataValues.metric;
+
+                let network_str = "";
+                if(mask == null){
+                    network_str = network;
+                }
+                else{
+                    network_str = (network + "/" + mask)
+                }
+
+                let data = {
+                    "to": network_str,
+                    "via": gw
+                }
+                if(metric != null && metric != ""){
+                    data["metric"] = metric;
+                }
+
+                output[value].push(data);
+            });
+        }
+        if(value == "SearchDomains"){
+            task[index].forEach(x=>{
+                output[value].push(x.dataValues.address);
+            });
+        }
+        if(value == "NameServers"){
+            task[index].forEach(x=>{
+                output[value].push(x.dataValues.address);
+            });
+        }
+    });
+
+    return output;
+}
+
+async function isNetworkConfig(id){
+    const result = await GetNetworks(id);
+    const count = result.ipaddrs.length + result.routings.length + result.SearchDomains.length + result.NameServers.length;
+
+    return count > 0 ? true : false;
+}
 module.exports = router;
