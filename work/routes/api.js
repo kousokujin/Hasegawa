@@ -6,6 +6,8 @@ const crypto = require('crypto');
 const validation = require('../lib/validation');
 var unixcrypt = require("unixcrypt");
 
+const PAGE_NUM = 1;
+
 const Editor_Model_New = {
     //---- general ----
     install_id: {
@@ -111,7 +113,7 @@ router.get('/installation/:id', function(req, res, next) {
     })
 });
 
-router.get("/Search",function(req,res,next){
+router.get("/Search",async function(req,res,next){
     let query = {}
     let word = "";
     if(req.query.word != null && req.query.word != ""){
@@ -120,21 +122,40 @@ router.get("/Search",function(req,res,next){
         }
         word = req.query.word;
     }
-    db.installations.findAll({where: query}).then((result)=>{
-        var datas = []
-        result.forEach((value,index,array)=>{
-            datas.push(value.dataValues);
-        });
-        datas.forEach((value,index,array)=>{
-            datas[index].password = "";
-        })
-        res.json({
-            Installations: datas,
-            search_word: word
-        });
-    }).catch((err)=>{
-        res.status(500).json(err);
-    })
+    let page = 0;
+
+    if(req.query.page != null && !isNaN(req.query.page)){
+        page = Number(req.query.page);
+    }
+
+    let task = [
+        db.installations.findAll({
+            where: query,
+            limit: PAGE_NUM,
+            offset: PAGE_NUM * page
+        }),
+        db.installations.findAll({
+            where: query,
+            limit: 1,
+            offset: PAGE_NUM * (page+1)
+        }),
+    ]
+
+    const result = await Promise.all(task);
+    
+    const isnext = result[1].length > 0 ? true : false;
+    let data = [];
+    result[0].forEach(v =>{
+        data.push(v.dataValues);
+    });
+    data.forEach((value,index,array)=>{
+        data[index].password = "";
+    });
+    res.json({
+        Installations: data,
+        search_word: word,
+        nextpage: isnext
+    });
 });
 
 router.get("/edit_model/:id",function(req,res,next){
@@ -410,7 +431,6 @@ function ModifyInstallation(model,after_func){
         result.ssh = model.enable_ssh;
 
         if(model.password.content != ''){
-            console.log("password-modify");
             let hash_pass = ToHash(model.password.content);
             result.password = hash_pass;
         }

@@ -4,7 +4,6 @@ async function GetModel(url,params){
 }
 
 async function POSTData(url,data){
-    console.log(data);
     const result = await axios.post(url,data);
     return result;
 }

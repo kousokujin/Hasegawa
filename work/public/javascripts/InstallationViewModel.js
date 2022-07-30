@@ -31,6 +31,5 @@ function err(result){
 function Convert_Datetime(model){
     model.createdAt = convert_time(model.createdAt);
     model.updatedAt = convert_time(model.updatedAt);
-    console.log(model);
 }
 init_model("/api/installation/"+id,{},Run,err);
