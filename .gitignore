@@ -1,5 +1,4 @@
 db/
 work/bin
-work/lib/
 work/node_modules/
 work/package-lock.json
