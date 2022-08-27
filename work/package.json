@@ -5,6 +5,7 @@
   "scripts": {
     "start": "nodemon ./bin/www",
     "production": "NODE_ENV=production nodemon ./bin/www",
+    "create": "NODE_ENV=production npx sequelize db:create",
     "migrate": "NODE_ENV=production npx sequelize db:migrate"
   },
   "dependencies": {
