@@ -3,12 +3,12 @@ var router = express.Router();
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  res.render("List",{word: ""});
+  res.render("list",{word: ""});
 });
 
 router.get("/Installation/:id",function(req,res,next){
   const id = req.params["id"]
-  res.render("Installation_view",{id: id,title: "AutoInstallaion Configs"})
+  res.render("installation_view",{id: id,title: "AutoInstallaion Configs"})
 });
 
 router.get('/install-list',function(req, res, next) {
@@ -16,7 +16,7 @@ router.get('/install-list',function(req, res, next) {
   if(req.query.word != null){
     word = req.query.word;
   }
-  res.render("List",{word: word});
+  res.render("list",{word: word});
 });
 
 router.get('/edit/:install_id', function(req, res, next) {
